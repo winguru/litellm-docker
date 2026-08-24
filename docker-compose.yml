@@ -69,7 +69,7 @@ services:
     image: redis:alpine
     expose:
       - "6379"
-    command: redis-server --requirepass ${REDIS_SECRET}  # Reads from your .env file
+    command: redis-server --requirepass ${REDIS_PASSWORD}  # Reads from your .env file
 
   prometheus:
     image: prom/prometheus
