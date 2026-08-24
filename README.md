@@ -148,6 +148,74 @@ The safer approach is:
 - connect to it by service name such as `pgvector-db`
 - keep the PGVector API internal-only unless you intentionally want external access
 
+## Enabling PGVector in this project
+
+If you want to turn on the optional PGVector feature, follow these steps.
+
+### 1. Update your environment variables
+
+Uncomment or add the PGVector values in your local `.env` file or in `stack.env`:
+
+```env
+PGVECTOR_DATABASE_URL="postgresql://llmproxy:dbpassword9090@pgvector-db:5432/litellm_vector?schema=public"
+PGVECTOR_SERVER_API_KEY="replace-with-a-long-random-secret"
+EMBEDDING__MODEL="text-embedding-ada-002"
+EMBEDDING__BASE_URL="http://litellm:4000"
+EMBEDDING__API_KEY="sk-1234"
+EMBEDDING__DIMENSIONS="1536"
+```
+
+Keep these values separate from the main LiteLLM database settings.
+
+### 2. Start the combined stack
+
+Run the main stack plus the optional PGVector override together:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.pgvector.yml up -d
+```
+
+This starts:
+- the main LiteLLM stack
+- the PGVector database container
+- the PGVector runtime service
+
+### 3. Verify the vector extension is enabled
+
+The Postgres container initializes the extension automatically through the startup SQL file:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+You can confirm it is active with:
+
+```bash
+docker exec -it litellm_pgvector_db psql -U llmproxy -d litellm_vector -c "SELECT extname FROM pg_extension;"
+```
+
+You should see `vector` listed.
+
+### 4. Use the PGVector service internally
+
+The PGVector runtime is meant to be used from inside the Docker network, not via the host. The default internal URL should be:
+
+```text
+http://pgvector:8000
+```
+
+If you are testing directly from the container host, you can map a temporary host port, but this is not the recommended default configuration.
+
+### 5. Shut it down later
+
+To stop the optional setup later:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.pgvector.yml down
+```
+
+If you want to keep the default stack only, leave the override out and run the normal Compose command without the PGVector file.
+
 ## Typical runtime flow
 
 In normal use, the flow is:
