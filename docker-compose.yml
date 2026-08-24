@@ -67,12 +67,14 @@ services:
 
   redis-server:
     image: redis:alpine
+    container_name: litellm_redis-server
     expose:
       - "6379"
     command: redis-server --requirepass ${REDIS_PASSWORD}  # Reads from your .env file
 
   prometheus:
     image: prom/prometheus
+    container_name: litellm_prometheus
     volumes:
       - prometheus_data:/prometheus
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
@@ -85,6 +87,7 @@ services:
     restart: always
 
   zai-vision-mcp:
+    container_name: litellm_zai-vision-mcp
     build:  # Compiles and applies the local Dockerfile context automatically
       context: .
       dockerfile: zai-vision-mcp.Dockerfile

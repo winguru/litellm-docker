@@ -18,13 +18,13 @@ litellm_settings:
   enable_redis_auth_cache: true # Crucial for syncing virtual API keys
   cache_params:
     type: "redis"
-    host: "localhost"
+    host: "redis-server"
     port: 6379
     password: os.environ/REDIS_PASSWORD
 
 router_settings:
   routing_strategy: simple-shuffle
-  redis_host: "localhost"
+  redis_host: "redis-server"
   redis_port: 6379
   redis_password: os.environ/REDIS_PASSWORD
 
