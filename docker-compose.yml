@@ -38,6 +38,7 @@ services:
       - db  # Indicates that this service depends on the 'db' service, ensuring 'db' starts first
       - redis-server
       - zai-vision-mcp
+      - memory-mcp
     healthcheck:  # Defines the health check configuration for the container
       test:
         - CMD-SHELL
@@ -96,8 +97,20 @@ services:
     expose:
       - "8000"
 
+  memory-mcp:
+    container_name: litellm_memory-mcp
+    build:  # Compiles and applies the local Dockerfile context automatically
+      context: .
+      dockerfile: memory-mcp.Dockerfile
+    volumes:
+      - memory_data:/data # Persists the knowledge graph across container restarts
+    expose:
+      - "8000"
+
 volumes:
   prometheus_data:
     driver: local
+  memory_data:
+    name: litellm_memory_data # Named volume for MCP memory persistence
   postgres_data:
     name: litellm_postgres_data # Named volume for Postgres data persistence

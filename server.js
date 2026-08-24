@@ -10,25 +10,32 @@ const app = express();
 const sseSessions = new Map();
 const streamableSessions = new Map();
 
+// Which stdio MCP server to bridge. Defaults to the Z.AI server for backwards compatibility.
+const MCP_COMMAND = process.env.MCP_COMMAND || 'node';
+const MCP_ARGS = process.env.MCP_ARGS
+  ? JSON.parse(process.env.MCP_ARGS)
+  : ['./node_modules/@z_ai/mcp-server/build/index.js'];
+const PORT = parseInt(process.env.PORT || '8000', 10);
+
 /**
- * Core bridge logic: Manually starts the transport, spawns the Z.AI child process,
+ * Core bridge logic: Manually starts the transport, spawns the stdio MCP child process,
  * and pipes messages bidirectionally.
  */
-async function createZaiBridge(transport, onCloseCallback) {
+async function createBridge(transport, onCloseCallback) {
   // CRITICAL FIX: Manually start the transport since we aren't using McpServer.connect()
   await transport.start();
 
-  const child = spawn('node', ['./node_modules/@z_ai/mcp-server/build/index.js'], {
+  const child = spawn(MCP_COMMAND, MCP_ARGS, {
     env: { ...process.env, Z_AI_API_KEY: process.env.ZAI_API_KEY, Z_AI_MODE: 'ZAI' },
     stdio: ['pipe', 'pipe', 'inherit']
   });
 
-  // Client -> Z.AI
+  // Client -> MCP server
   transport.onmessage = (msg) => {
     child.stdin.write(JSON.stringify(msg) + '\n');
   };
 
-  // Z.AI -> Client
+  // MCP server -> Client
   child.stdout.on('data', (data) => {
     data.toString().split('\n').filter(Boolean).forEach(line => {
       try {
@@ -42,7 +49,7 @@ async function createZaiBridge(transport, onCloseCallback) {
 
   // Cleanup hooks
   child.on('close', (code) => {
-    console.log(`Z.AI backend process disconnected with code ${code}`);
+    console.log(`MCP backend process disconnected with code ${code}`);
     if (transport.close) transport.close().catch(() => {});
   });
 
@@ -61,7 +68,7 @@ app.get('/sse', async (req, res) => {
   const transport = new SSEServerTransport('/messages', res);
   sseSessions.set(transport.sessionId, transport);
   
-  await createZaiBridge(transport, () => sseSessions.delete(transport.sessionId));
+  await createBridge(transport, () => sseSessions.delete(transport.sessionId));
 });
 
 app.post('/messages', (req, res) => {
@@ -94,7 +101,7 @@ mcpRouter.post('/', async (req, res) => {
     // New session initialization
     transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => crypto.randomUUID() });
     
-    await createZaiBridge(transport, () => {
+    await createBridge(transport, () => {
       if (transport.sessionId) streamableSessions.delete(transport.sessionId);
     });
   } else {
@@ -135,8 +142,8 @@ mcpRouter.delete('/', async (req, res) => {
 app.use('/mcp', mcpRouter);
 
 // Start server
-app.listen(8000, '0.0.0.0', () => {
-  console.log('🚀 Dual-Transport MCP Bridge listening on port 8000');
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Dual-Transport MCP Bridge listening on port ${PORT}`);
   console.log('   - SSE endpoints: /sse, /messages');
   console.log('   - Streamable HTTP endpoint: /mcp');
 });
