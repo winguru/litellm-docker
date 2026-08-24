@@ -28,11 +28,15 @@ services:
       LANGFUSE_HOST: ${LANGFUSE_OTEL_HOST}
       PRISMA_QUERY_ENGINE_TIMEOUT: "30"   # seconds
       DATABASE_CONNECTION_TIMEOUT: "30"   # seconds
+      REDIS_HOST: "redis-server"
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     env_file:
-    #   - .env # Load local .env file
-      - stack.env # Local Portainer.io .env file
+      - stack.env # Local Portainer.io .env file (default values)
+      - .env # Load local .env file (overwritten values)
     depends_on:
       - db  # Indicates that this service depends on the 'db' service, ensuring 'db' starts first
+      - redis-server
       - zai-vision-mcp
     healthcheck:  # Defines the health check configuration for the container
       test:
@@ -60,6 +64,12 @@ services:
       interval: 1s
       timeout: 5s
       retries: 10
+
+  redis-server:
+    image: redis:alpine
+    expose:
+      - "6379"
+    command: redis-server --requirepass ${REDIS_SECRET}  # Reads from your .env file
 
   prometheus:
     image: prom/prometheus

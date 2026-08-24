@@ -14,6 +14,19 @@ litellm_settings:
     - semantic-similarity
     - proxy_base_url
   public_model_groups_links: {}
+  cache: true
+  enable_redis_auth_cache: true # Crucial for syncing virtual API keys
+  cache_params:
+    type: "redis"
+    host: "localhost"
+    port: 6379
+    password: os.environ/REDIS_PASSWORD
+
+router_settings:
+  routing_strategy: simple-shuffle
+  redis_host: "localhost"
+  redis_port: 6379
+  redis_password: os.environ/REDIS_PASSWORD
 
 general_settings:
   store_model_in_db: true
