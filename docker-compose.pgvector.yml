@@ -1,0 +1,49 @@
+services:
+  pgvector-db:
+    image: pgvector/pgvector:pg16
+    container_name: litellm_pgvector_db
+    environment:
+      POSTGRES_DB: litellm_vector
+      POSTGRES_USER: llmproxy
+      POSTGRES_PASSWORD: dbpassword9090
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llmproxy -d litellm_vector"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgvector:
+    container_name: litellm_pgvector
+    build:
+      context: .
+      dockerfile: pgvector-runtime.Dockerfile
+    environment:
+      DATABASE_URL: ${PGVECTOR_DATABASE_URL:-postgresql://llmproxy:dbpassword9090@pgvector-db:5432/litellm_vector?schema=public}
+      SERVER_API_KEY: ${PGVECTOR_SERVER_API_KEY:-changeme}
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      EMBEDDING__MODEL: ${EMBEDDING__MODEL:-text-embedding-ada-002}
+      EMBEDDING__BASE_URL: ${EMBEDDING__BASE_URL:-http://litellm:4000}
+      EMBEDDING__API_KEY: ${EMBEDDING__API_KEY:-sk-1234}
+      EMBEDDING__DIMENSIONS: ${EMBEDDING__DIMENSIONS:-1536}
+      DB_FIELDS__ID_FIELD: ${DB_FIELDS__ID_FIELD:-id}
+      DB_FIELDS__CONTENT_FIELD: ${DB_FIELDS__CONTENT_FIELD:-content}
+      DB_FIELDS__METADATA_FIELD: ${DB_FIELDS__METADATA_FIELD:-metadata}
+      DB_FIELDS__EMBEDDING_FIELD: ${DB_FIELDS__EMBEDDING_FIELD:-embedding}
+      DB_FIELDS__VECTOR_STORE_ID_FIELD: ${DB_FIELDS__VECTOR_STORE_ID_FIELD:-vector_store_id}
+      DB_FIELDS__CREATED_AT_FIELD: ${DB_FIELDS__CREATED_AT_FIELD:-created_at}
+    expose:
+      - "8000"
+    depends_on:
+      pgvector-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgvector_data:
+    name: litellm_pgvector_data
