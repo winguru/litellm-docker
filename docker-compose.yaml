@@ -29,7 +29,8 @@ services:
       PRISMA_QUERY_ENGINE_TIMEOUT: "30"   # seconds
       DATABASE_CONNECTION_TIMEOUT: "30"   # seconds
     env_file:
-      - .env # Load local .env file
+    #   - .env # Load local .env file
+      - stack.env # Local Portainer.io .env file
     depends_on:
       - db  # Indicates that this service depends on the 'db' service, ensuring 'db' starts first
       - zai-vision-mcp
