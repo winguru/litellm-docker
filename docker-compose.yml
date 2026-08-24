@@ -1,4 +1,4 @@
-# docker-compose.yaml file for LiteLLM
+# docker-compose.yml file for LiteLLM
 services:
   litellm:
     build:
