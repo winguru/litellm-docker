@@ -1,10 +1,10 @@
 # docker-compose.yml file for LiteLLM
 services:
   litellm:
-    build:
-      context: .
-      args:
-        target: runtime
+    # build:
+    #   context: .
+    #   args:
+    #     target: runtime
     image: docker.litellm.ai/berriai/litellm:main-stable
     #########################################
     ## Uncomment these lines to start proxy with a config.yaml file ##
