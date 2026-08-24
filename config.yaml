@@ -59,6 +59,10 @@ model_list:
       mode: embedding
       mode: completion
     model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
       supports_function_calling: true
       supports_tool_choice: true
       # health_check_model: qwen2.5-0.5b-instruct
@@ -75,6 +79,10 @@ model_list:
       drop_params: true
       allowed_openai_params: ["tools"]
     model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
       max_input_tokens: 1000000
       max_output_tokens: 131072
       supports_function_calling: true
@@ -88,6 +96,10 @@ model_list:
       api_key: os.environ/ZAI_API_KEY
       drop_params: true
     model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
       max_input_tokens: 204800
       max_output_tokens: 131072
       supports_function_calling: true
@@ -102,6 +114,10 @@ model_list:
       additional_drop_params: [] # 👈 KEY CHANGE
       drop_params: true
     model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
       max_input_tokens: 204800
       max_output_tokens: 131072
       supports_function_calling: true
@@ -115,6 +131,10 @@ model_list:
       additional_drop_params: [] # 👈 KEY CHANGE
       drop_params: true
     model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
       max_input_tokens: 205000
       max_output_tokens: 131072
       supports_function_calling: true
@@ -129,12 +149,13 @@ model_list:
       additional_drop_params: [] # 👈 KEY CHANGE
       drop_params: true
     model_info:
-      input_cost_per_token: 1.2e-6         # $1.20 / MiTok
-      cache_read_input_token_cost: 2.4e-7  # $0.24 / MiTok
-      output_cost_per_token: 4.0e-6        # $4.00 / MiTok
+      input_cost_per_token: 1.2e-6             # $1.20 / MiTok
+      cache_creation_input_token_cost: 1.2e-6  # $1.20 / MiTok
+      cache_read_input_token_cost: 2.4e-7      # $0.24 / MiTok
+      output_cost_per_token: 4.0e-6            # $4.00 / MiTok
       max_input_tokens: 204800
       max_output_tokens: 131072
-      max_parallel_requests: 1             # Concurrency Limit
+      max_parallel_requests: 1                 # Concurrency Limit
       supports_function_calling: true
       supports_tool_choice: true
       supports_vision: true
@@ -146,12 +167,13 @@ model_list:
       api_key: os.environ/ZAI_API_KEY
       drop_params: true
     model_info:
-      input_cost_per_token: 1.4e-6         # $1.40 / MiTok
-      cache_read_input_token_cost: 2.6e-7  # $0.26 / MiTok
-      output_cost_per_token: 4.4e-6        # $4.40 / MiTok
+      input_cost_per_token: 1.4e-6             # $1.40 / MiTok
+      cache_creation_input_token_cost: 1.4e-6  # $1.40 / MiTok
+      cache_read_input_token_cost: 2.6e-7      # $0.26 / MiTok
+      output_cost_per_token: 4.4e-6            # $4.40 / MiTok
       max_input_tokens: 200000
       max_output_tokens: 128000
-      max_parallel_requests: 1             # Concurrency Limit
+      max_parallel_requests: 1                 # Concurrency Limit
 
   - model_name: zai-org/glm-5
     litellm_params:
@@ -160,12 +182,13 @@ model_list:
       api_key: os.environ/ZAI_API_KEY
       drop_params: true
     model_info:
-      input_cost_per_token: 1e-6           # $1.00 / MiTok
-      cache_read_input_token_cost: 2e-7    # $0.20 / MiTok
-      output_cost_per_token: 3.2e-6        # $3.20 / MiTok
+      input_cost_per_token: 1e-6               # $1.00 / MiTok
+      cache_creation_input_token_cost: 1e-6    # $1.00 / MiTok
+      cache_read_input_token_cost: 2e-7        # $0.20 / MiTok
+      output_cost_per_token: 3.2e-6            # $3.20 / MiTok
       max_input_tokens: 200000
       max_output_tokens: 128000
-      max_parallel_requests: 2             # Concurrency Limit
+      max_parallel_requests: 2                 # Concurrency Limit
 
   - model_name: zai-org/glm-4.7
     litellm_params:
@@ -174,11 +197,12 @@ model_list:
       # drop_params: true
     model_info:
       input_cost_per_token: 6e-7
+      cache_creation_input_token_cost: 0
       cache_read_input_token_cost: 1.1e-7
       output_cost_per_token: 2.2e-6
       max_input_tokens: 200000
       max_output_tokens: 128000
-      max_parallel_requests: 2             # Concurrency Limit
+      max_parallel_requests: 2                 # Concurrency Limit
 
   - model_name: zai-org/glm-4.6v
     litellm_params:
@@ -186,11 +210,12 @@ model_list:
       api_key: os.environ/ZAI_API_KEY
     model_info:
       input_cost_per_token: 3e-7
+      cache_creation_input_token_cost: 0
       cache_read_input_token_cost: 5e-8
       output_cost_per_token: 9e-7
       max_input_tokens: 200000
       max_output_tokens: 128000
-      max_parallel_requests: 10            # Concurrency Limit
+      max_parallel_requests: 10                # Concurrency Limit
       supports_function_calling: true
       supports_tool_choice: true
       supports_vision: true
@@ -201,27 +226,37 @@ model_list:
       api_key: os.environ/ZAI_API_KEY
     model_info:
       input_cost_per_token: 6e-7
+      cache_creation_input_token_cost: 0
       cache_read_input_token_cost: 1.1e-7
       output_cost_per_token: 1.8e-6
       max_input_tokens: 128000
       max_output_tokens: 32000
-      max_parallel_requests: 10            # Concurrency Limit
+      max_parallel_requests: 10                # Concurrency Limit
       supports_function_calling: true
       supports_tool_choice: true
       supports_vision: true
 
-  - model_name: zai-org/glm-4.6v-flash  # Free tier
+  - model_name: zai-org/glm-4.6v-flash         # Free tier
     litellm_params:
       model: zai/glm-4.6v-flash
       api_key: os.environ/ZAI_API_KEY
     model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
       max_input_tokens: 200000
       max_output_tokens: 128000
-      max_parallel_requests: 1             # Concurrency Limit
+      max_parallel_requests: 1                 # Concurrency Limit
       supports_vision: true
 
-  - model_name: zai-org/glm-4.5-flash  # Free tier
+  - model_name: zai-org/glm-4.5-flash          # Free tier
     litellm_params:
       model: zai/glm-4.5-flash
       api_key: os.environ/ZAI_API_KEY
-      max_parallel_requests: 3             # Concurrency Limit
+    model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
+      max_parallel_requests: 3                 # Concurrency Limit
