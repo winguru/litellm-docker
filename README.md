@@ -250,7 +250,7 @@ If you want to turn on the optional PGVector feature, follow these steps.
 
 ### 1. Update your environment variables
 
-Uncomment or add the PGVector values in your local `.env` file or in `stack.env`:
+Uncomment or add the PGVector values in your local `.env` file or in `stack.env`. These values are specifically for the LiteLLM vector-store / embedding side of the stack, not the LM Studio host or any other local agent endpoint.
 
 ```env
 PGVECTOR_DATABASE_URL="postgresql://llmproxy:dbpassword9090@pgvector-db:5432/litellm_vector?schema=public"
@@ -260,16 +260,24 @@ PGVECTOR_SERVER_API_KEY="replace-with-a-long-random-secret"
 # Google example: gemini-embedding-001
 # Voyage example: voyage-3-large
 # Local example: sentence-transformers/all-MiniLM-L6-v2
-EMBEDDING__MODEL="text-embedding-3-small"
-EMBEDDING__BASE_URL="http://litellm:4000"
-EMBEDDING__API_KEY="sk-1234"
-EMBEDDING__DIMENSIONS="1536"
+LITELLM_EMBEDDING__MODEL="text-embedding-3-small"
+LITELLM_EMBEDDING__BASE_URL="http://litellm:4000"
+LITELLM_EMBEDDING__API_KEY="sk-1234"
+LITELLM_EMBEDDING__DIMENSIONS="1536"
 LOCAL_EMBEDDING_MODEL="sentence-transformers/all-MiniLM-L6-v2"
 LOCAL_EMBEDDING_BASE_URL="http://host.docker.internal:11434/v1"
 LOCAL_EMBEDDING_API_KEY="sk-local"
 ```
 
 Keep these values separate from the main LiteLLM database settings.
+
+The important point is that there are two different concepts here:
+
+- the LiteLLM model routing configuration in `config.yaml`, including the generic alias names such as `text-embedding-small` and `local-text-embedding-small`
+- the LiteLLM embedding settings for the optional PGVector service, which are configured here as `LITELLM_EMBEDDING__*`
+- the local LM Studio endpoint, which is configured separately via `LMSTUDIO_HOST` and `LMSTUDIO_API_KEY`
+
+Those are different layers and should not be confused with one another. The `LMSTUDIO_HOST` values are for the local model runner; the `LITELLM_EMBEDDING__*` values are for the vector-store embedding service that LiteLLM uses for retrieval work.
 
 The important point is that there is no single required embedding model for this stack. For provider-based embeddings, choose a model appropriate to the provider you are using. For local or self-hosted workflows, use a local OpenAI-compatible embedding endpoint or a Hugging Face model exposed through a local server.
 

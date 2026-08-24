@@ -27,10 +27,12 @@ services:
       SERVER_API_KEY: ${PGVECTOR_SERVER_API_KEY:-changeme}
       HOST: "0.0.0.0"
       PORT: "8000"
-      EMBEDDING__MODEL: ${EMBEDDING__MODEL:-text-embedding-3-small}
-      EMBEDDING__BASE_URL: ${EMBEDDING__BASE_URL:-http://litellm:4000}
-      EMBEDDING__API_KEY: ${EMBEDDING__API_KEY:-sk-1234}
-      EMBEDDING__DIMENSIONS: ${EMBEDDING__DIMENSIONS:-1536}
+      # Keep these names explicit: these are the LiteLLM embedding settings for
+      # the optional vector-store service, not the local LM Studio model endpoint.
+      LITELLM_EMBEDDING__MODEL: ${LITELLM_EMBEDDING__MODEL:-text-embedding-3-small}
+      LITELLM_EMBEDDING__BASE_URL: ${LITELLM_EMBEDDING__BASE_URL:-http://litellm:4000}
+      LITELLM_EMBEDDING__API_KEY: ${LITELLM_EMBEDDING__API_KEY:-sk-1234}
+      LITELLM_EMBEDDING__DIMENSIONS: ${LITELLM_EMBEDDING__DIMENSIONS:-1536}
       DB_FIELDS__ID_FIELD: ${DB_FIELDS__ID_FIELD:-id}
       DB_FIELDS__CONTENT_FIELD: ${DB_FIELDS__CONTENT_FIELD:-content}
       DB_FIELDS__METADATA_FIELD: ${DB_FIELDS__METADATA_FIELD:-metadata}
