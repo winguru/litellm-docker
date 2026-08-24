@@ -13,6 +13,13 @@ litellm_settings:
     - user_api_key_team_alias
     - semantic-similarity
     - proxy_base_url
+    - app
+    - user_id
+    - session_id
+    - conversation_id
+    - route
+    - provider
+    - model_name
   public_model_groups_links: {}
   cache: true
   enable_redis_auth_cache: true # Crucial for syncing virtual API keys
@@ -37,6 +44,12 @@ general_settings:
       litellm_user_role: internal_user
     - header_name: X-OpenWebUI-User-Email
       litellm_user_role: customer
+    - header_name: X-Session-Id
+      litellm_user_role: internal_user
+    - header_name: X-Conversation-Id
+      litellm_user_role: internal_user
+    - header_name: X-App-Name
+      litellm_user_role: internal_user
 
 mcp_servers:
   zai_vision_mcp:
@@ -53,10 +66,37 @@ mcp_servers:
   #     Z_AI_MODE: "ZAI"
 
 model_list:
+  # Recommended app-facing alias: keep the app contract stable while the backend
+  # can be swapped between cloud and local providers depending on environment.
+  - model_name: text-embedding-small
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_base: https://api.openai.com/v1
+      api_key: os.environ/OPENAI_API_KEY
+      mode: embedding
+    model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
+
+  # Local-only alias for self-hosted or LM Studio style embedding endpoints.
+  - model_name: local-text-embedding-small
+    litellm_params:
+      model: openai/sentence-transformers/all-MiniLM-L6-v2
+      api_base: os.environ/LOCAL_EMBEDDING_BASE_URL
+      api_key: os.environ/LOCAL_EMBEDDING_API_KEY
+      mode: embedding
+    model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
+
   - model_name: lm_studio/*
     litellm_params:
       model: openai/*
-      api_base: http://host.docker.internal:1234/v1
+      api_base: os.environ/LMSTUDIO_HOST
       api_key: os.environ/LMSTUDIO_API_KEY
       mode: embedding
       mode: completion
@@ -68,6 +108,26 @@ model_list:
       supports_function_calling: true
       supports_tool_choice: true
       # health_check_model: qwen2.5-0.5b-instruct
+
+  # Optional local embedding example for HF/OpenAI-compatible local servers.
+  # Replace the values below with your own local embedding endpoint if needed.
+  - model_name: local_embedding/*
+    litellm_params:
+      model: openai/*
+      api_base: os.environ/LOCAL_EMBEDDING_BASE_URL
+      api_key: os.environ/LOCAL_EMBEDDING_API_KEY
+      mode: embedding
+    model_info:
+      input_cost_per_token: 0
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
+      output_cost_per_token: 0
+      supports_function_calling: false
+      supports_tool_choice: false
+
+  # Example local Hugging Face embedding model name:
+  # sentence-transformers/all-MiniLM-L6-v2
+  # or another model exposed by a local OpenAI-compatible embedding server.
 
 ###
 ### Z.AI CODING PLAN

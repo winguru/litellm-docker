@@ -27,7 +27,7 @@ services:
       SERVER_API_KEY: ${PGVECTOR_SERVER_API_KEY:-changeme}
       HOST: "0.0.0.0"
       PORT: "8000"
-      EMBEDDING__MODEL: ${EMBEDDING__MODEL:-text-embedding-ada-002}
+      EMBEDDING__MODEL: ${EMBEDDING__MODEL:-text-embedding-3-small}
       EMBEDDING__BASE_URL: ${EMBEDDING__BASE_URL:-http://litellm:4000}
       EMBEDDING__API_KEY: ${EMBEDDING__API_KEY:-sk-1234}
       EMBEDDING__DIMENSIONS: ${EMBEDDING__DIMENSIONS:-1536}

@@ -45,6 +45,60 @@ LMSTUDIO_API_KEY="sk-lm-..."
 
 You can also use the provided `stack.env` file as a template for defaults.
 
+## Langfuse user and session metadata
+
+For better trace quality in Langfuse, send stable identity and session metadata with each request. This is especially useful when multiple users or multiple chat sessions share the same LiteLLM proxy.
+
+The default config already maps a few custom headers into LiteLLM user metadata, including:
+
+- `X-OpenWebUI-User-Id`
+- `X-OpenWebUI-User-Email`
+- `X-Session-Id`
+- `X-Conversation-Id`
+- `X-App-Name`
+
+These headers help Langfuse group requests by user, chat thread, and app context instead of treating every model call as an unrelated anonymous event.
+
+A good request pattern looks like this:
+
+```http
+X-OpenWebUI-User-Id: alice
+X-OpenWebUI-User-Email: alice@example.com
+X-Session-Id: session-123
+X-Conversation-Id: convo-456
+X-App-Name: custom-agent-ui
+```
+
+This gives you cleaner traces for:
+
+- user-level visibility in Langfuse
+- per-session debugging
+- multi-turn conversations across the same app
+- better correlation between chat events and tool invocations
+
+If your UI already has a user ID, session ID, or conversation ID, pass it through to LiteLLM instead of relying only on the default API key metadata.
+
+### Example request using the same metadata pattern
+
+```bash
+curl "http://localhost:4000/v1/chat/completions" \
+  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-OpenWebUI-User-Id: alice" \
+  -H "X-OpenWebUI-User-Email: alice@example.com" \
+  -H "X-Session-Id: session-123" \
+  -H "X-Conversation-Id: convo-456" \
+  -H "X-App-Name: my-custom-ui" \
+  -d '{
+    "model": "zai-org/glm-5.2-coding",
+    "messages": [
+      {"role": "user", "content": "Help me summarize the session."}
+    ]
+  }'
+```
+
+This is the easiest way to make the Langfuse traces naturally group by user and conversation while still using the normal LiteLLM model routing.
+
 ## Included MCP servers
 
 This stack includes two MCP services that are available to LiteLLM internally:
@@ -117,6 +171,48 @@ This gives you a simple starter setup for coding-oriented tasks and tool calling
 
 The config also includes multimodal and vision-enabled Z.AI models, such as `glm-5v-turbo`, `glm-4.6v`, and similar variants. These are useful for image-capable and general reasoning workflows.
 
+## Generic embedding aliases
+
+A good pattern for LiteLLM is to keep the model name the app calls stable and let the backend mapping vary by environment. For example, your application can request a generic alias like `text-embedding-small`, while the actual configured backend is either:
+
+- a cloud-backed model such as `openai/text-embedding-3-small`
+- a local provider such as the LM Studio wildcard route
+- a self-hosted Hugging Face model exposed through an OpenAI-compatible endpoint
+
+This keeps app code simpler and avoids hardcoding a single vendor-specific model name into every integration.
+
+Example patterns in `config.yaml`:
+
+```yaml
+- model_name: text-embedding-small
+  litellm_params:
+    model: openai/text-embedding-3-small
+    api_base: https://api.openai.com/v1
+    api_key: os.environ/OPENAI_API_KEY
+    mode: embedding
+
+- model_name: local-text-embedding-small
+  litellm_params:
+    model: openai/sentence-transformers/all-MiniLM-L6-v2
+    api_base: os.environ/LOCAL_EMBEDDING_BASE_URL
+    api_key: os.environ/LOCAL_EMBEDDING_API_KEY
+    mode: embedding
+```
+
+This is usually better than forcing a single embedding model across all environments. The alias remains stable for the app, while the actual route can be swapped based on the deployment.
+
+### Recommended embedding examples by provider
+
+Use the model that matches the backend you are actually calling:
+
+- OpenAI: `text-embedding-3-small` or `text-embedding-3-large`
+- Google: `gemini-embedding-001`
+- Voyage: `voyage-3-large` or another supported Voyage embedding model
+- Anthropic: use the embedding endpoint or provider route that Anthropic exposes in your deployment
+- Local / self-hosted: `sentence-transformers/all-MiniLM-L6-v2`, `BAAI/bge-small-en-v1.5`, or another Hugging Face model exposed through a local OpenAI-compatible server
+
+This gives you a clean app-facing alias without locking the project to one vendor or one embedding model family.
+
 ## Optional PGVector support
 
 This repo also includes an optional PGVector setup for future vector-store use cases, such as story ingestion, lore retrieval, and semantic search.
@@ -159,13 +255,23 @@ Uncomment or add the PGVector values in your local `.env` file or in `stack.env`
 ```env
 PGVECTOR_DATABASE_URL="postgresql://llmproxy:dbpassword9090@pgvector-db:5432/litellm_vector?schema=public"
 PGVECTOR_SERVER_API_KEY="replace-with-a-long-random-secret"
-EMBEDDING__MODEL="text-embedding-ada-002"
+# Recommended pattern: choose an embedding model that matches your provider.
+# OpenAI example: text-embedding-3-small
+# Google example: gemini-embedding-001
+# Voyage example: voyage-3-large
+# Local example: sentence-transformers/all-MiniLM-L6-v2
+EMBEDDING__MODEL="text-embedding-3-small"
 EMBEDDING__BASE_URL="http://litellm:4000"
 EMBEDDING__API_KEY="sk-1234"
 EMBEDDING__DIMENSIONS="1536"
+LOCAL_EMBEDDING_MODEL="sentence-transformers/all-MiniLM-L6-v2"
+LOCAL_EMBEDDING_BASE_URL="http://host.docker.internal:11434/v1"
+LOCAL_EMBEDDING_API_KEY="sk-local"
 ```
 
 Keep these values separate from the main LiteLLM database settings.
+
+The important point is that there is no single required embedding model for this stack. For provider-based embeddings, choose a model appropriate to the provider you are using. For local or self-hosted workflows, use a local OpenAI-compatible embedding endpoint or a Hugging Face model exposed through a local server.
 
 ### 2. Start the combined stack
 
