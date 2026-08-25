@@ -1,6 +1,6 @@
 # config.yaml file for LiteLLM
 environment_variables: {
-  "PG_VECTOR_API_BASE": "http://pgvector:8000",
+  "PG_VECTOR_API_BASE": os.environ/PGVECTOR_BASE_URL,
   "PG_VECTOR_API_KEY": os.environ/PGVECTOR_SERVER_API_KEY
 }
 
@@ -43,7 +43,7 @@ router_settings:
 general_settings:
   # General storage configurations 
   vector_store_type: "pg_vector"
-  vector_store_api_base: "http://pgvector:8000"
+  vector_store_api_base: os.environ/PGVECTOR_BASE_URL
   store_model_in_db: true
   store_prompts_in_spend_logs: false
   disable_spend_logs: false
@@ -58,6 +58,12 @@ general_settings:
       litellm_user_role: internal_user
     - header_name: X-App-Name
       litellm_user_role: internal_user
+
+vector_store_registry:
+  - vector_store_id: "litellm_pgvector"
+    custom_llm_provider: "pg_vector"
+    api_base: os.environ/PGVECTOR_BASE_URL         # References the llmpgvector docker service
+    api_key: os.environ/PGVECTOR_SERVER_API_KEY    # Must match SERVER_API_KEY in docker-compose
 
 mcp_servers:
   zai_vision_mcp:

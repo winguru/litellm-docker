@@ -34,7 +34,8 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     env_file:
       - stack.env # Local Portainer.io .env file (default values)
-      - .env # Load local .env file (overwritten values)
+      - path: .env # Load local .env file (overwritten values)
+        required: false
     depends_on:
       - db  # Indicates that this service depends on the 'db' service, ensuring 'db' starts first
       - redis-server

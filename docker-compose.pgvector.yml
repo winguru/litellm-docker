@@ -1,4 +1,9 @@
 services:
+  litellm:
+    environment:
+      PGVECTOR_BASE_URL: ${PGVECTOR_BASE_URL:-http://pgvector:8000}
+      PGVECTOR_SERVER_API_KEY: ${PGVECTOR_SERVER_API_KEY:-changeme}
+
   pgvector-db:
     container_name: litellm_pgvector_db
     image: pgvector/pgvector:pg16

@@ -255,15 +255,16 @@ Uncomment or add the PGVector values in your local `.env` file or in `stack.env`
 ```env
 PGVECTOR_DATABASE_URL="postgresql://llmproxy:dbpassword9090@pgvector-db:5432/litellm_vector?schema=public"
 PGVECTOR_SERVER_API_KEY="replace-with-a-long-random-secret"
+PGVECTOR_BASE_URL="http://pgvector:8000"
 # Recommended pattern: choose an embedding model that matches your provider.
 # OpenAI example: text-embedding-3-small
 # Google example: gemini-embedding-001
 # Voyage example: voyage-3-large
 # Local example: sentence-transformers/all-MiniLM-L6-v2
-LITELLM_EMBEDDING__MODEL="text-embedding-3-small"
-LITELLM_EMBEDDING__BASE_URL="http://litellm:4000"
-LITELLM_EMBEDDING__API_KEY="sk-1234"
-LITELLM_EMBEDDING__DIMENSIONS="1536"
+EMBEDDING__MODEL="text-embedding-3-small"
+EMBEDDING__BASE_URL="http://litellm:4000"
+EMBEDDING__API_KEY="sk-1234"
+EMBEDDING__DIMENSIONS="1536"
 LOCAL_EMBEDDING_MODEL="sentence-transformers/all-MiniLM-L6-v2"
 LOCAL_EMBEDDING_BASE_URL="http://host.docker.internal:11434/v1"
 LOCAL_EMBEDDING_API_KEY="sk-local"
@@ -274,10 +275,12 @@ Keep these values separate from the main LiteLLM database settings.
 The important point is that there are two different concepts here:
 
 - the LiteLLM model routing configuration in `config.yaml`, including the generic alias names such as `text-embedding-small` and `local-text-embedding-small`
-- the LiteLLM embedding settings for the optional PGVector service, which are configured here as `LITELLM_EMBEDDING__*`
+- the LiteLLM embedding settings for the optional PGVector service, which are configured here as `EMBEDDING__*`
 - the local LM Studio endpoint, which is configured separately via `LMSTUDIO_HOST` and `LMSTUDIO_API_KEY`
 
-Those are different layers and should not be confused with one another. The `LMSTUDIO_HOST` values are for the local model runner; the `LITELLM_EMBEDDING__*` values are for the vector-store embedding service that LiteLLM uses for retrieval work.
+Those are different layers and should not be confused with one another. The `LMSTUDIO_HOST` values are for the local model runner; the `EMBEDDING__*` values are for the vector-store embedding service that LiteLLM uses for retrieval work.
+
+Do not put `api_key` inside `ingest_options.vector_store` when creating a vector store from the LiteLLM Admin UI or API. LiteLLM rejects request-supplied vector-store credentials with an error like `'api_key' cannot be set in ingest_options.vector_store`. The vector-store credential belongs server-side in `config.yaml` under `vector_store_registry`, with `api_key: os.environ/PGVECTOR_SERVER_API_KEY`, and the runtime service must receive the same value as `SERVER_API_KEY`.
 
 The important point is that there is no single required embedding model for this stack. For provider-based embeddings, choose a model appropriate to the provider you are using. For local or self-hosted workflows, use a local OpenAI-compatible embedding endpoint or a Hugging Face model exposed through a local server.
 
