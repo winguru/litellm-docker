@@ -129,11 +129,11 @@ class VisionHook(CustomLogger):
         hosted_name = None
         try:
             if url.startswith("data:"):
-                raw, digest = self._decode(url)
+                raw, digest, media_type = self._decode(url)
                 cached = _transcripts.get(digest)
                 if cached is not None:                 # conversation history re-sends
                     return {"type": "text", "text": _wrap(cached)}
-                hosted_name, public_url = self._write(raw, digest)
+                hosted_name, public_url = self._write(raw, digest, media_type)
             else:
                 public_url, digest = url, None
 
@@ -154,15 +154,18 @@ class VisionHook(CustomLogger):
                 _sweep_expired()
 
     @staticmethod
-    def _decode(data_url: str) -> tuple[bytes, str]:
+    def _decode(data_url: str) -> tuple[bytes, str, str]:
         header, _, b64 = data_url.partition(",")
         raw = base64.b64decode(b64)
-        return raw, hashlib.sha256(raw).hexdigest()
+        media_type = header[5:].split(";", 1)[0] or "image/png"
+        if media_type not in {"image/png", "image/jpeg"}:
+            media_type = "image/png"
+        return raw, hashlib.sha256(raw).hexdigest(), media_type
 
     @staticmethod
-    def _write(raw: bytes, digest: str) -> tuple[str, str]:
-        # ext sniffed again here for clarity; default png
-        name = f"{digest[:16]}.{uuid.uuid4().hex[:8]}.png"
+    def _write(raw: bytes, digest: str, media_type: str) -> tuple[str, str]:
+        extension = ".jpg" if media_type == "image/jpeg" else ".png"
+        name = f"{digest[:16]}.{uuid.uuid4().hex[:8]}{extension}"
         with open(os.path.join(IMAGE_DIR, name), "wb") as f:
             f.write(raw)
         return name, f"{PUBLIC_BASE}/public/images/{name}"

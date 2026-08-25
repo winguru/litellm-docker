@@ -1,6 +1,9 @@
 const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse.js');
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
 const { spawn } = require('child_process');
+const fs = require('fs/promises');
+const os = require('os');
+const path = require('path');
 const express = require('express');
 const crypto = require('crypto');
 
@@ -31,8 +34,31 @@ async function createBridge(transport, onCloseCallback) {
   });
 
   // Client -> MCP server
-  transport.onmessage = (msg) => {
-    child.stdin.write(JSON.stringify(msg) + '\n');
+  const temporaryImages = new Map();
+
+  transport.onmessage = async (msg) => {
+    let forwarded = msg;
+    let temporaryImage;
+    const imageSource = msg.params?.arguments?.image_source;
+    if (msg.method === 'tools/call' && typeof imageSource === 'string' && /^https?:\/\//.test(imageSource)) {
+      const response = await fetch(imageSource);
+      if (!response.ok) {
+        throw new Error(`Image fetch failed with HTTP ${response.status}`);
+      }
+      const contentType = response.headers.get('content-type')?.split(';', 1)[0] || 'image/png';
+      const extension = contentType === 'image/jpeg' ? '.jpg' : '.png';
+      temporaryImage = path.join(os.tmpdir(), `zai-vision-${crypto.randomUUID()}${extension}`);
+      await fs.writeFile(temporaryImage, Buffer.from(await response.arrayBuffer()));
+      temporaryImages.set(msg.id, temporaryImage);
+      forwarded = {
+        ...msg,
+        params: {
+          ...msg.params,
+          arguments: { ...msg.params.arguments, image_source: temporaryImage }
+        }
+      };
+    }
+    child.stdin.write(JSON.stringify(forwarded) + '\n');
   };
 
   // MCP server -> Client
@@ -40,6 +66,11 @@ async function createBridge(transport, onCloseCallback) {
     data.toString().split('\n').filter(Boolean).forEach(line => {
       try {
         const response = JSON.parse(line);
+        const temporaryImage = temporaryImages.get(response.id);
+        if (temporaryImage) {
+          temporaryImages.delete(response.id);
+          fs.unlink(temporaryImage).catch(() => {});
+        }
         transport.send(response).catch(e => console.error('Failed to send message:', e));
       } catch (e) {
         // Suppress parsing fragments
@@ -49,6 +80,8 @@ async function createBridge(transport, onCloseCallback) {
 
   // Cleanup hooks
   child.on('close', (code) => {
+    for (const temporaryImage of temporaryImages.values()) fs.unlink(temporaryImage).catch(() => {});
+    temporaryImages.clear();
     console.log(`MCP backend process disconnected with code ${code}`);
     if (transport.close) transport.close().catch(() => {});
   });
