@@ -83,7 +83,7 @@ model_list:
   # Local-only alias for self-hosted or LM Studio style embedding endpoints.
   - model_name: local-text-embedding-small
     litellm_params:
-      model: openai/sentence-transformers/all-MiniLM-L6-v2
+      model: os.environ/LOCAL_EMBEDDING_MODEL
       api_base: os.environ/LOCAL_EMBEDDING_BASE_URL
       api_key: os.environ/LOCAL_EMBEDDING_API_KEY
       mode: embedding
