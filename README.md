@@ -122,6 +122,26 @@ This gives LiteLLM access to both:
 
 These services stay inside the Docker network and are not intended to be exposed publicly.
 
+## Vision proxy hook and failed image processing
+
+Text-only coding models (for example the Z.AI GLM coding routes) cannot ingest `image_url` parts. The custom hook in `custom_hooks/litellm_vision_proxy.py` gives them transparent vision: before the request reaches the model, every image part is sent to the `zai-vision-mcp` sidecar for transcription, and the image part is replaced in place with a `<vision_transcript>` text part. Transcripts are cached by image digest, so conversation history re-sends do not re-run the MCP call.
+
+Image processing never fails the whole request. There are three outcomes:
+
+| Outcome | What the model sees | Cached? |
+| --- | --- | --- |
+| Transcription succeeds | `<vision_transcript>` block with the description | Yes, by sha256 digest |
+| Image rejected by the upstream content filter | `<vision_unavailable>` note: the image was blocked by a content safety filter, the model should tell the user and not guess at the contents | Yes (negative cache, no re-attempt) |
+| Any other failure (MCP outage, HTTP 5xx, timeout) | `<vision_unavailable>` note with a plain-language reason (timed out, service unreachable, server error, rate-limited) and a retry hint | No — retried on the next send |
+
+Details worth knowing:
+
+- Content-filter rejections are detected by stable markers in the provider error (Z.AI error code `1301` / `contentFilter`) rather than exact string matching, so minor wording changes upstream will not break detection.
+- The `<vision_unavailable>` note intentionally does not use the authoritative-evidence preamble from the success path. A blocked image must not be described as if it were seen, and provider error internals are never leaked into the conversation.
+- Blocked images log a single warning line per digest; hard failures log the full traceback for debugging.
+- Failure notes carry a user-safe reason category (timeout, service unreachable, server error, rate-limited, request rejected); raw exception details and internal hostnames stay in the proxy logs.
+- Coding-agent clients attach an `<attached_files>` placeholder next to each image. Once the image part is processed, that block references a file id that no longer exists, so the hook strips it from the same message. This applies to all three outcomes above, keeping conversation history free of dead tokens.
+
 ## LiteLLM configuration overview
 
 The default `config.yaml` is already set up for several useful patterns:
