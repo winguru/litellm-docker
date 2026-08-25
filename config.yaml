@@ -84,17 +84,17 @@ mcp_servers:
 model_list:
   # Recommended app-facing alias: keep the app contract stable while the backend
   # can be swapped between cloud and local providers depending on environment.
-  - model_name: text-embedding-small
-    litellm_params:
-      model: openai/text-embedding-3-small
-      api_base: https://api.openai.com/v1
-      api_key: os.environ/OPENAI_API_KEY
-      mode: embedding
-    model_info:
-      input_cost_per_token: 0
-      cache_creation_input_token_cost: 0
-      cache_read_input_token_cost: 0
-      output_cost_per_token: 0
+  # - model_name: text-embedding-small
+  #   litellm_params:
+  #     model: openai/text-embedding-3-small
+  #     api_base: https://api.openai.com/v1
+  #     api_key: os.environ/OPENAI_API_KEY
+  #     mode: embedding
+  #   model_info:
+  #     input_cost_per_token: 0
+  #     cache_creation_input_token_cost: 0
+  #     cache_read_input_token_cost: 0
+  #     output_cost_per_token: 0
 
   # Local-only alias for self-hosted or LM Studio style embedding endpoints.
   - model_name: local-text-embedding
@@ -102,7 +102,7 @@ model_list:
       model: os.environ/LOCAL_EMBEDDING_MODEL
       api_base: os.environ/LOCAL_EMBEDDING_BASE_URL
       api_key: os.environ/LOCAL_EMBEDDING_API_KEY
-      litellm_provider: openai
+      custom_llm_provider: openai
       mode: embedding
     model_info:
       input_cost_per_token: 0
