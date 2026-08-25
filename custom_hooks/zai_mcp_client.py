@@ -110,7 +110,13 @@ class McpSseSession:
     async def call_tool(self, name: str, arguments: dict) -> str:
         result = await self._rpc("tools/call", {"name": name, "arguments": arguments})
         if result.get("isError"):
-            raise McpSseError(f"tool '{name}' returned an error result")
+            details = "\n".join(
+                item.get("text", "")
+                for item in result.get("content", [])
+                if item.get("type") == "text"
+            )
+            suffix = f": {details}" if details else ""
+            raise McpSseError(f"tool '{name}' returned an error result{suffix}")
         return "\n".join(
             b.get("text", "") for b in result.get("content", []) if b.get("type") == "text"
         )
@@ -125,11 +131,11 @@ async def describe_image(
     async with McpSseSession(base_url, timeout) as session:
         await session.initialize()
         if tool_name is None:
-            for t in await session.list_tools():
-                n = t.get("name", "").lower()
-                if "vision" in n or "image" in n:
-                    tool_name = t["name"]
-                    break
+            tools = await session.list_tools()
+            tool_names = {t.get("name", "").lower(): t.get("name", "") for t in tools}
+            tool_name = tool_names.get("analyze_image")
             if tool_name is None:
                 raise McpSseError("no vision-like tool exposed by MCP server")
-        return await session.call_tool(tool_name, {"url": image_url, "prompt": prompt})
+        return await session.call_tool(
+            tool_name, {"image_source": image_url, "prompt": prompt}
+        )
