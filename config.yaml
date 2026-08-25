@@ -1,4 +1,9 @@
 # config.yaml file for LiteLLM
+environment_variables: {
+  "PG_VECTOR_API_BASE": "http://pgvector:8000",
+  "PG_VECTOR_API_KEY": os.environ/PGVECTOR_SERVER_API_KEY
+}
+
 litellm_settings:
   callbacks: ["langfuse_otel"]
   check_provider_endpoint: true
