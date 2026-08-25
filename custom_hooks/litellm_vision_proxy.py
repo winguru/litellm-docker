@@ -109,8 +109,18 @@ class VisionHook(CustomLogger):
             if not isinstance(content, list):
                 continue
             for pi, part in enumerate(content):
-                if isinstance(part, dict) and part.get("type") == "image_url":
-                    url = (part.get("image_url") or {}).get("url", "")
+                if not isinstance(part, dict) or part.get("type") != "image_url":
+                    continue
+
+                image_url = part.get("image_url")
+                if isinstance(image_url, str):
+                    url = image_url
+                elif isinstance(image_url, dict):
+                    url = image_url.get("url", "")
+                else:
+                    url = ""
+
+                if url:
                     jobs.append((mi, pi, asyncio.create_task(self._transcribe(url))))
 
         if not jobs:
