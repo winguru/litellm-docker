@@ -86,11 +86,12 @@ model_list:
       output_cost_per_token: 0
 
   # Local-only alias for self-hosted or LM Studio style embedding endpoints.
-  - model_name: local-text-embedding-small
+  - model_name: local-text-embedding
     litellm_params:
       model: os.environ/LOCAL_EMBEDDING_MODEL
       api_base: os.environ/LOCAL_EMBEDDING_BASE_URL
       api_key: os.environ/LOCAL_EMBEDDING_API_KEY
+      litellm_provider: openai
       mode: embedding
     model_info:
       input_cost_per_token: 0
@@ -116,19 +117,19 @@ model_list:
 
   # Optional local embedding example for HF/OpenAI-compatible local servers.
   # Replace the values below with your own local embedding endpoint if needed.
-  - model_name: local_embedding/*
-    litellm_params:
-      model: openai/*
-      api_base: os.environ/LOCAL_EMBEDDING_BASE_URL
-      api_key: os.environ/LOCAL_EMBEDDING_API_KEY
-      mode: embedding
-    model_info:
-      input_cost_per_token: 0
-      cache_creation_input_token_cost: 0
-      cache_read_input_token_cost: 0
-      output_cost_per_token: 0
-      supports_function_calling: false
-      supports_tool_choice: false
+  # - model_name: local_embedding/*
+  #   litellm_params:
+  #     model: openai/*
+  #     api_base: os.environ/LOCAL_EMBEDDING_BASE_URL
+  #     api_key: os.environ/LOCAL_EMBEDDING_API_KEY
+  #     mode: embedding
+  #   model_info:
+  #     input_cost_per_token: 0
+  #     cache_creation_input_token_cost: 0
+  #     cache_read_input_token_cost: 0
+  #     output_cost_per_token: 0
+  #     supports_function_calling: false
+  #     supports_tool_choice: false
 
   # Example local Hugging Face embedding model name:
   # sentence-transformers/all-MiniLM-L6-v2
