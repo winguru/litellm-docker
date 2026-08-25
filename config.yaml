@@ -41,6 +41,9 @@ router_settings:
   redis_password: os.environ/REDIS_PASSWORD
 
 general_settings:
+  # General storage configurations 
+  vector_store_type: "pg_vector"
+  vector_store_api_base: "http://pgvector:8000"
   store_model_in_db: true
   store_prompts_in_spend_logs: false
   disable_spend_logs: false
