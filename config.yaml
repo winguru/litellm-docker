@@ -5,7 +5,7 @@ environment_variables: {
 }
 
 litellm_settings:
-  callbacks: ["langfuse_otel"]
+  callbacks: ["langfuse_otel", "custom_hooks.litellm_vision_proxy.hook"]
   check_provider_endpoint: true
   request_timeout: 600
   langfuse_default_tags:

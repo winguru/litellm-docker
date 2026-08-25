@@ -11,6 +11,7 @@ services:
     ## Uncomment these lines to start proxy with a config.yaml file ##
     volumes:
       - ./config.yaml:/app/config.yaml
+      - ./custom_hooks:/app/custom_hooks:ro          # NEW
     command: [ "--config", "/app/config.yaml", "--num_workers", "2" ]
     ##############################################
     ports:
@@ -32,6 +33,9 @@ services:
       REDIS_HOST: "redis-server"
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ZAI_MCP_BASE_URL: "http://zai-vision-mcp:8000"            # NEW - service DNS
+      ZAI_VISION_TOOL: ""                                       # NEW - empty = auto-discover
+      LITELLM_PUBLIC_BASE_URL: "https://litellm.thewinguru.com" # NEW
     env_file:
       - stack.env # Local Portainer.io .env file (default values)
       - .env # Load local .env file (overwritten values)
