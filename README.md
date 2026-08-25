@@ -280,7 +280,7 @@ The important point is that there are two different concepts here:
 
 Those are different layers and should not be confused with one another. The `LMSTUDIO_HOST` values are for the local model runner; the `EMBEDDING__*` values are for the vector-store embedding service that LiteLLM uses for retrieval work.
 
-Do not put `api_key` inside `ingest_options.vector_store` when creating a vector store from the LiteLLM Admin UI or API. LiteLLM rejects request-supplied vector-store credentials with an error like `'api_key' cannot be set in ingest_options.vector_store`. The vector-store credential belongs server-side in `config.yaml` under `vector_store_registry`, with `api_key: os.environ/PGVECTOR_SERVER_API_KEY`, and the runtime service must receive the same value as `SERVER_API_KEY`.
+Do not put `api_key` inside `ingest_options.vector_store` when creating a vector store from the LiteLLM Admin UI or API. LiteLLM rejects request-supplied vector-store credentials with an error like `'api_key' cannot be set in ingest_options.vector_store`. The vector-store credential belongs server-side in `config.yaml` under `vector_store_registry[].litellm_params.api_key`, with `api_key: os.environ/PGVECTOR_SERVER_API_KEY`, and the runtime service must receive the same value as `SERVER_API_KEY`.
 
 The important point is that there is no single required embedding model for this stack. For provider-based embeddings, choose a model appropriate to the provider you are using. For local or self-hosted workflows, use a local OpenAI-compatible embedding endpoint or a Hugging Face model exposed through a local server.
 

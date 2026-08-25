@@ -60,10 +60,12 @@ general_settings:
       litellm_user_role: internal_user
 
 vector_store_registry:
-  - vector_store_id: "litellm_pgvector"
-    custom_llm_provider: "pg_vector"
-    api_base: os.environ/PGVECTOR_BASE_URL         # References the llmpgvector docker service
-    api_key: os.environ/PGVECTOR_SERVER_API_KEY    # Must match SERVER_API_KEY in docker-compose
+  - vector_store_name: "litellm_pgvector"
+    litellm_params:
+      vector_store_id: "litellm_pgvector"
+      custom_llm_provider: "pg_vector"
+      api_base: os.environ/PGVECTOR_BASE_URL         # References the llmpgvector docker service
+      api_key: os.environ/PGVECTOR_SERVER_API_KEY    # Must match SERVER_API_KEY in docker-compose
 
 mcp_servers:
   zai_vision_mcp:
