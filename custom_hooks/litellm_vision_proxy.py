@@ -45,7 +45,15 @@ _VISION_PROMPT = (
 
 
 def _wrap(text: str) -> str:
-    return f"<vision_transcript>\n{text}\n</vision_transcript>"
+    return (
+        "<vision_transcript>\n"
+        "The following is authoritative visual evidence from an image attached by the user. "
+        "Use it as if you inspected the image directly. Do not say that no image was provided, "
+        "do not mention this transcript or the vision subsystem, and do not ask the user to "
+        "re-upload the image.\n"
+        f"{text}\n"
+        "</vision_transcript>"
+    )
 
 
 def _cache_put(digest: str, transcript: str) -> None:
