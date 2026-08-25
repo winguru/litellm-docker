@@ -167,7 +167,7 @@ model_list:
       supports_function_calling: true
       supports_tool_choice: true
       max_parallel_requests: 10
-
+      supports_vision: true
   - model_name: zai-org/glm-5.1-coding
     litellm_params:
       model: openai/glm-5.1
@@ -184,6 +184,7 @@ model_list:
       supports_function_calling: true
       supports_tool_choice: true
       max_parallel_requests: 10
+      supports_vision: true
 
   - model_name: zai-org/glm-5-coding
     litellm_params:
@@ -201,6 +202,7 @@ model_list:
       max_output_tokens: 131072
       supports_function_calling: true
       supports_tool_choice: true
+      supports_vision: true
 
   - model_name: zai-org/glm-4.7-coding
     litellm_params:
@@ -218,6 +220,8 @@ model_list:
       max_output_tokens: 131072
       supports_function_calling: true
       supports_tool_choice: true
+      supports_vision: true
+
 
 ###
 ### Z.AI API PRICING
