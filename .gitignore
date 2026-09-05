@@ -2,8 +2,10 @@
 __pycache__/
 *.py[cod]
 
-# Env
+# Env — real secrets live only in the untracked .env (see .env.example)
 .env
+.env.*
+!.env.example
 
 # OS
 .DS_Store

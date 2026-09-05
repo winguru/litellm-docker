@@ -37,13 +37,26 @@ services:
       ZAI_VISION_TOOL: ""                                       # NEW - empty = auto-discover
       LITELLM_PUBLIC_BASE_URL: "http://litellm:4000"
     env_file:
-      - stack.env # Local Portainer.io .env file (default values)
-      - .env # Load local .env file (overwritten values)
+      # Committed defaults template (safe to keep in git)
+      - path: stack.env
+        required: true
+      # Local secrets/overrides — never committed (.env is gitignored).
+      # Optional so a fresh clone can run compose commands before creating it;
+      # copy .env.example to .env and fill in real keys.
+      - path: .env
+        required: false
     depends_on:
       - db  # Indicates that this service depends on the 'db' service, ensuring 'db' starts first
       - redis-server
       - zai-vision-mcp
       - memory-mcp
+      # NOTE: serena-mcp is intentionally NOT here. It is gated behind the
+      # "serena" Compose profile (opt-in), and an unprofiled service cannot
+      # depend on a profiled one. LiteLLM connects to MCP servers lazily at
+      # request time, so serena-mcp simply being absent is fine; when the
+      # profile is enabled, start it separately (or first) with:
+      #   COMPOSE_PROFILES=serena docker compose up -d
+      - context7-mcp
     healthcheck:  # Defines the health check configuration for the container
       test:
         - CMD-SHELL
@@ -112,9 +125,104 @@ services:
     expose:
       - "8000"
 
+  # One-shot job that prepares the Serena volumes before the MCP server
+  # starts: seeds the config volume and clones / updates the git
+  # repositories listed in SERENA_GIT_REPOS into the projects volume.
+  # This is how Serena gets code access when the stack runs on a different
+  # machine than your codebase (bind mounts are not an option there).
+  #
+  # Gated behind the "serena" profile together with serena-mcp: this stack
+  # only needs the REMOTE Serena when analyzing pushed repos. For live local
+  # code, run Serena locally over stdio instead (see README "Serena: local
+  # vs. remote"). Enable with COMPOSE_PROFILES=serena (env) or --profile serena.
+  serena-projects-init:
+    container_name: litellm_serena-projects-init
+    image: alpine/git:latest
+    # The alpine/git image's default entrypoint is `git` itself, so invoke
+    # our init script explicitly.
+    entrypoint: ["/bin/sh", "/usr/local/bin/init-projects.sh"]
+    restart: "no"
+    profiles:
+      - serena
+    volumes:
+      - serena_projects:/workspaces/projects
+      - serena_config:/workspaces/serena/config
+      - ./serena/init-projects.sh:/usr/local/bin/init-projects.sh:ro
+      - ./serena/serena_config.yml:/opt/serena_config.yml:ro
+    environment:
+      # Space-separated git URLs, optionally "<url>|<branch>", e.g.
+      #   SERENA_GIT_REPOS="https://github.com/org/repo.git https://github.com/org/other.git|develop"
+      - SERENA_GIT_REPOS=${SERENA_GIT_REPOS:-}
+      # Optional token (e.g. GitHub PAT) for cloning private repositories
+      - SERENA_GIT_TOKEN=${SERENA_GIT_TOKEN:-}
+      # "true" to discard local edits in the projects volume on every restart
+      - SERENA_GIT_RESET=${SERENA_GIT_RESET:-false}
+
+  # Serena: semantic code understanding / editing MCP server (official image).
+  # Uses the native streamable-http transport on :9121/mcp — no stdio bridge.
+  # NOTE: Serena is stateful and only ONE project can be active at a time.
+  # Projects live in the serena_projects volume (populated from git by the
+  # serena-projects-init service) and are referred to by their in-container
+  # paths /workspaces/projects/<name>. Set SERENA_ACTIVE_PROJECT to
+  # pre-activate one at startup, or let agents use activate_project.
+  #
+  # Running the stack on the SAME machine as your code? Swap the projects
+  # volume for a bind mount instead:
+  #   - ${SERENA_PROJECTS_DIR:-./serena/projects}:/workspaces/projects
+  #
+  # OPT-IN: gated behind the "serena" profile because most coding-agent work
+  # happens on live local code, where Serena must run ON YOUR MACHINE over
+  # stdio (it operates directly on the filesystem — no proxying possible):
+  #   uvx -p 3.13 --from git+https://github.com/oraios/serena \
+  #     serena start-mcp-server --project /path/to/code
+  # This remote instance targets PUSHED repos via SERENA_GIT_REPOS. The two
+  # are independent and can run simultaneously. Enable this one with
+  # COMPOSE_PROFILES=serena (also honored by Portainer via stack.env).
+  serena-mcp:
+    container_name: litellm_serena-mcp
+    image: ghcr.io/oraios/serena:latest
+    profiles:
+      - serena
+    volumes:
+      - serena_projects:/workspaces/projects
+      # Writable config volume (seeded from ./serena/serena_config.yml by the
+      # init job) so project registrations persist across container restarts.
+      - serena_config:/workspaces/serena/config
+      - ./serena/run-server.sh:/usr/local/bin/run-server.sh:ro
+    environment:
+      - SERENA_DOCKER=1
+      # Optional: project name or in-container path to activate at startup
+      - SERENA_ACTIVE_PROJECT=${SERENA_ACTIVE_PROJECT:-}
+    entrypoint: ["/bin/bash", "/usr/local/bin/run-server.sh"]
+    command: []
+    depends_on:
+      serena-projects-init:
+        condition: service_completed_successfully
+    expose:
+      - "9121" # MCP streamable-http endpoint (/mcp)
+      - "24282" # web dashboard (http://localhost:24282/dashboard if you publish it)
+
+  # Context7: up-to-date library documentation MCP server (self-hosted).
+  # Uses the npm package's native HTTP transport on :8000/mcp — no stdio bridge.
+  context7-mcp:
+    container_name: litellm_context7-mcp
+    build:
+      context: .
+      dockerfile: context7-mcp.Dockerfile
+    environment:
+      # Optional: get a free key at https://context7.com/dashboard for higher
+      # rate limits. Anonymous access works without a key.
+      - CONTEXT7_API_KEY=${CONTEXT7_API_KEY:-}
+    expose:
+      - "8000"
+
 volumes:
   prometheus_data:
     driver: local
+  serena_projects:
+    name: litellm_serena_projects # Git-cloned codebases served by Serena
+  serena_config:
+    name: litellm_serena_config # Writable Serena config (persists project registrations)
   memory_data:
     name: litellm_memory_data # Named volume for MCP memory persistence
   postgres_data:

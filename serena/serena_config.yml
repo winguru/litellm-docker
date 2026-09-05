@@ -1,0 +1,28 @@
+# serena/serena_config.yml
+#
+# Serena configuration mounted into the container at /workspaces/serena/config.
+# These settings are required for Docker usage, per the upstream guide
+# (https://github.com/oraios/serena/blob/main/DOCKER.md):
+#   - gui_log_window must be disabled (not supported in Docker)
+#   - the dashboard must listen on 0.0.0.0 to be reachable from outside
+#   - the dashboard must not try to open a browser window on launch
+#
+# See all options:
+#   https://oraios.github.io/serena/02-usage/050_configuration.html
+
+# Docker-required settings
+gui_log_window: False
+web_dashboard_listen_address: 0.0.0.0
+web_dashboard_open_on_launch: False
+
+# The projects you mount under /workspaces/projects (see docker-compose.yml)
+# are referred to by their in-container path, e.g.:
+#   /workspaces/projects/my-project
+# Projects are activated at runtime via the activate_project tool; the
+# mounted config directory keeps project registrations persistent across
+# container restarts.
+
+# Optionally tune language server behavior, e.g.:
+# language_server:
+#   options:
+#     multitape: false

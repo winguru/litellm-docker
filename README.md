@@ -11,6 +11,8 @@ This repo sets up:
 - Prometheus for monitoring
 - a Z.AI vision MCP server
 - a memory MCP server
+- a Serena MCP server for semantic code understanding and editing (opt-in, `serena` Compose profile; use local stdio Serena for live code)
+- a Context7 MCP server for up-to-date library documentation
 - a starter LiteLLM config for local LM Studio use and Z.AI models
 
 The goal is to give you a working local stack for routing agent traffic to either local or remote models, while also exposing MCP-based tools for memory and vision tasks.
@@ -24,7 +26,15 @@ The goal is to give you a working local stack for routing agent traffic to eithe
 
 ## Local environment file
 
-Create an `.env` file with values similar to the following:
+The committed `stack.env` holds safe defaults, and `.env` (gitignored) holds your real secrets and overrides. `.env` is optional for compose commands — a fresh clone works before you create one — but the stack needs it for real keys.
+
+Create it from the template:
+
+```bash
+cp .env.example .env
+```
+
+Then fill in the values you need:
 
 ```env
 # .env file for docker-compose.yaml
@@ -43,7 +53,7 @@ NOVELAI_API_KEY="pst-..."
 LMSTUDIO_API_KEY="sk-lm-..."
 ```
 
-You can also use the provided `stack.env` file as a template for defaults.
+Settings in `.env` override the same keys from `stack.env`; anything you leave out keeps its `stack.env` default. See `.env.example` for the full annotated list, including the optional Serena and Context7 variables.
 
 ## Langfuse user and session metadata
 
@@ -101,10 +111,12 @@ This is the easiest way to make the Langfuse traces naturally group by user and 
 
 ## Included MCP servers
 
-This stack includes two MCP services that are available to LiteLLM internally:
+This stack includes four MCP services that are available to LiteLLM internally:
 
 - `zai-vision-mcp`: connects to the Z.AI vision MCP service and exposes it through a local HTTP endpoint.
 - `memory-mcp`: provides a separate memory service for persistent context and memory-based agent workflows.
+- `serena-mcp`: semantic code navigation, search, reference-finding, and editing tools backed by language servers. Runs the official `ghcr.io/oraios/serena` image with its native streamable-http transport on port `9121`. **Opt-in** — gated behind the `serena` Compose profile (see [Serena: local vs. remote](#serena-local-vs-remote)).
+- `context7-mcp`: up-to-date, version-specific library documentation for LLMs. Self-hosted from `@upstash/context7-mcp` with its native HTTP transport on port `8000`.
 
 The relevant section in `config.yaml` looks like this:
 
@@ -114,11 +126,89 @@ mcp_servers:
     url: "http://zai-vision-mcp:8000/mcp"
   memory_mcp:
     url: "http://memory-mcp:8000/mcp"
+  serena_mcp:
+    url: "http://serena-mcp:9121/mcp"
+  context7_mcp:
+    url: "http://context7-mcp:8000/mcp"
 ```
 
-This gives LiteLLM access to both:
+### Serena: local vs. remote
+
+Serena's MCP server operates **directly on the filesystem it runs on** — there is no agent or proxy layer that could shuttle code access to a remote instance. That means the right way to run it depends on the state of the code:
+
+| | Local Serena (stdio) | Remote Serena (this stack) |
+| --- | --- | --- |
+| **Best for** | Live, uncommitted, unpushed code — everyday coding and debugging | Already-pushed repos, analyzed remotely by stack users |
+| **Where it runs** | On your machine, launched by your editor/agent as a subprocess | In Docker, behind the `serena` Compose profile |
+| **Transport** | stdio (Serena's default) | streamable-http on `:9121/mcp` |
+| **Code access** | Direct — any local path, including dirty working trees | Git clones in the `serena_projects` volume (via `SERENA_GIT_REPOS`) |
+| **How to start** | See the `uvx` command below | `COMPOSE_PROFILES=serena docker compose up -d` |
+
+The two instances are fully independent and can run at the same time — e.g. a local stdio Serena while you debug, plus the remote one serving pushed repos through LiteLLM.
+
+**Local (default for coding agents).** Run Serena next to your code without installing it:
+
+```bash
+uvx -p 3.13 --from git+https://github.com/oraios/serena serena start-mcp-server --project-from-cwd
+```
+
+Use `--project /path/to/code` to target a specific directory, or `--project-from-cwd` from the repo root (it auto-detects the nearest `.serena/project.yml` or `.git`). Editors and agents that support MCP stdio servers can launch this command themselves — e.g. in VS Code Copilot / Claude Code / Cursor MCP config:
+
+```json
+{
+  "servers": {
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "-p", "3.13",
+        "--from", "git+https://github.com/oraios/serena",
+        "serena", "start-mcp-server", "--project-from-cwd"
+      ]
+    }
+  }
+}
+```
+
+**Remote (opt-in).** The stack's `serena-mcp` service is disabled by default so it is not dead weight in local-debugging mode. Enable it with the `serena` Compose profile:
+
+```bash
+COMPOSE_PROFILES=serena docker compose up -d
+```
+
+Or uncomment `COMPOSE_PROFILES="serena"` in `stack.env` / `.env` (Portainer reads it from `stack.env` too). Starting the stack without the profile simply leaves `serena-mcp` out; LiteLLM connects to MCP servers lazily, so nothing else breaks.
+
+### Serena notes (remote instance)
+
+Serena is a stateful server: only **one project can be active at a time**, and projects must live inside the container at `/workspaces/projects/<name>` to be accessible.
+
+Because this stack may run on a different machine than your codebase, Serena does not use host bind mounts. Instead, a one-shot `serena-projects-init` job clones your repositories into a Docker volume before the MCP server starts:
+
+1. Set `SERENA_GIT_REPOS` in your `.env`/`stack.env` — space-separated git URLs, optionally pinned to a branch with `<url>|<branch>`:
+
+   ```bash
+   SERENA_GIT_REPOS="https://github.com/your-org/repo.git https://github.com/your-org/other.git|develop"
+   ```
+
+2. For private repositories, set `SERENA_GIT_TOKEN` to a GitHub personal access token; it is injected into `github.com` clone URLs only.
+3. On every `docker compose up`, the init job clones missing repos and fast-forward-updates existing ones (set `SERENA_GIT_RESET="true"` to also discard local edits).
+4. Optionally set `SERENA_ACTIVE_PROJECT="repo"` to pre-activate a project at startup; otherwise agents activate one by its in-container path via the `activate_project` tool, e.g. `/workspaces/projects/repo`.
+5. `serena/serena_config.yml` (Docker-required settings) seeds a writable config volume on first run, so project registrations persist across restarts.
+6. The web dashboard listens on container port `24282`; publish it in `docker-compose.yml` if you want to reach `http://localhost:24282/dashboard`.
+
+Running the stack on the same machine as your code? You can skip git and swap the `serena_projects` volume for a bind mount (`${SERENA_PROJECTS_DIR:-./serena/projects}:/workspaces/projects`) as noted in `docker-compose.yml`.
+
+### Context7 notes
+
+- The MCP server is a thin proxy to Context7's cloud index; self-hosting pins the version but does not make it offline.
+- Set `CONTEXT7_API_KEY` in your `.env`/`stack.env` (free key from [context7.com/dashboard](https://context7.com/dashboard)) for higher rate limits. It works anonymously without a key.
+
+This gives LiteLLM access to:
+
 - vision-capable Z.AI tools
 - memory-backed tools for agent sessions and long-lived context
+- Serena semantic code tools (find symbol, references, editing, and more) — when the `serena` profile is enabled
+- Context7 documentation lookup tools (`resolve-library-id`, `get-library-docs`)
 
 These services stay inside the Docker network and are not intended to be exposed publicly.
 

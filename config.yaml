@@ -72,6 +72,20 @@ mcp_servers:
     url: "http://zai-vision-mcp:8000/mcp"
   memory_mcp:
     url: "http://memory-mcp:8000/mcp"
+  # Serena: semantic code tools. Native streamable-http transport, no bridge.
+  # NOTE: only one project can be active at a time (activate_project tool);
+  # projects live under /workspaces/projects inside the serena-mcp container.
+  # The serena-mcp service is OPT-IN (Compose profile "serena"); when the
+  # profile is off, calls to these tools fail per-request but the proxy and
+  # the other MCP servers keep working. For live local code, run Serena
+  # locally over stdio instead (see README "Serena: local vs. remote").
+  serena_mcp:
+    url: "http://serena-mcp:9121/mcp"
+  # Context7: up-to-date library docs. Native HTTP transport, no bridge.
+  # Self-hosted from @upstash/context7-mcp; set CONTEXT7_API_KEY for higher
+  # rate limits (optional).
+  context7_mcp:
+    url: "http://context7-mcp:8000/mcp"
   # Standard Input/Output (stdio) Server
   # zai_vision_mcp:
   #   transport: "stdio"
